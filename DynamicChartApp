@@ -1,0 +1,128 @@
+//ASP.NET Core: framework used for creating the web application and web service.//
+///Database: database set up done, SQL Server with a table that contains the data for the charts.
+//Highcharts.js: This JavaScript library used for rendering different chart types on the frontend.
+//ASP.NET Core Web Application: Created in the name of DynamicChartApp
+// ASP.NET Core Web App (Model-View-Controller) template selected
+// Necessary Packages: installed as listed below:
+Installed Microsoft.EntityFrameworkCore.SqlServer and Microsoft.EntityFrameworkCore.Tools to work with the SQL database.
+//Package manager console command used like below:
+Install-Package Microsoft.EntityFrameworkCore.SqlServer
+Install-Package Microsoft.EntityFrameworkCore.Tools //
+
+// // CREATING TABLES IN CHART_DATABASE // // 
+ChartData table Creation in SQL Server for storing chart data://
+CREATE TABLE ChartData (
+    Id INT PRIMARY KEY IDENTITY,
+    Category NVARCHAR(50),
+    Value INT
+);
+Seeding the table with sample data: Ex://
+INSERT INTO ChartData (Category, Value) VALUES ('Category1', 10), ('Category2', 20), ('Category3', 30);
+//Entity Framework Core Set Up Process://
+ChartData model class Defined//
+public class ChartData
+{
+    public int Id { get; set; }
+    public string Category { get; set; }
+    public int Value { get; set; }
+}
+DbContext Configured to access this table://
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+    public DbSet<ChartData> ChartData { get; set; }
+}
+Connection string configured in appsettings.json: //
+"ConnectionStrings": {
+    "DefaultConnection": "Server=DELL\SQLEXPRESSR;Database=CHART_DATABASE;Trusted_Connection=True;"
+}
+ApplicationDbContext registered in Program.cs: //
+services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+//// Web Service Created to Provide Data: ////
+ChartData Controller Added: //
+API Controller Created to expose an endpoint that returns chart data: //
+[Route("api/[controller]")]
+[ApiController]
+public class ChartDataController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    
+    public ChartDataController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChartData()
+    {
+        var data = await _context.ChartData.ToListAsync();
+        return Ok(data);
+    }
+}
+//endpoint (/api/ChartData) will return chart data in JSON format//
+
+//Added Highcharts.js and Included Highcharts Library:// 
+CDN used to include Highcharts//
+<script src="https://code.highcharts.com/highcharts.js"></script>
+
+//Frontend UI Created with a Button and Chart Area//
+View with Button and Chart Container Added://
+In the HomeController, new action method for the view created//
+public IActionResult Index()
+{
+    return View();
+}
+//In Index.cshtml, button and a container added, where charts will be rendered
+<div>
+    <button id="addChartButton">Add Chart</button>
+</div>
+<div id="chartContainer"></div>
+
+// JavaScript written to Handle Button Click and Load Chart: //
+//JavaScript to Generate Chart on Button Click:
+//In Index.cshtml, script section added
+<script>
+    document.getElementById('addChartButton').addEventListener('click', function () {
+        fetch('/api/ChartData')
+            .then(response => response.json())
+            .then(data => {
+                // Randomly select a chart type
+                const chartTypes = ['pie', 'line', 'bar', 'column'];
+                const selectedType = chartTypes[Math.floor(Math.random() * chartTypes.length)];
+                
+                // Create a new container for each chart
+                const newChartDiv = document.createElement('div');
+                newChartDiv.className = 'chart';
+                document.getElementById('chartContainer').appendChild(newChartDiv);
+
+                // Map data for Highcharts format
+                const chartData = data.map(d => [d.Category, d.Value]);
+
+                // Create the chart
+                Highcharts.chart(newChartDiv, {
+                    chart: { type: selectedType },
+                    title: { text: 'Dynamic Chart' },
+                    series: [{
+                        name: 'Data',
+                        data: chartData
+                    }]
+                });
+            });
+    });
+</script>
+
+//Application runned // // Tested // and build success.
+// Project Running Overall process explained below// 
+//First Start the application. Open a browser and navigate to the page with the button.
+Click the Button:
+Each time you click the "Add Chart" button, a new chart with a randomly chosen type (pie, line, bar, or column) will be generated based on the data from the web service.
+
+##** Overall, This setup completes the given Task1 requirements:
+A web service providing data from the database.
+A frontend UI with a button that dynamically creates a container and displays a randomly selected chart type using Highcharts.js.
+
+
+
+
+
